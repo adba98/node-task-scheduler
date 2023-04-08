@@ -1,128 +1,117 @@
 const inquirer = require('inquirer');
 require('colors');
 
-const preguntas = [{
+const choices = [
+  { value: 1, name: 'Create task' },
+  { value: 2, name: 'List tasks' },
+  { value: 3, name: 'List completed tasks' },
+  { value: 4, name: 'List pending tasks' },
+  { value: 5, name: 'Complete task(s)' },
+  { value: 6, name: 'Delete task' },
+  { value: 0, name: 'Exit' },
+].map((choice) => ({
+  ...choice,
+  name: `${`${choice.value.toString()}.`.cyan} ${choice.name}`,
+}));
+
+const questions = {
   type: 'list',
-  name: 'opt',
-  message: 'Que deseas hacer?',
-  choices: [
-    {
-      value: 1,
-      name: `${'1.'.cyan} Crear Tarea`
-    }, {
-      value: 2,
-      name: `${'2.'.cyan} Listar Tareas`
-    }, {
-      value: 3,
-      name: `${'3.'.cyan} Listar Tareas Completadas`
-    }, {
-      value: 4,
-      name: `${'4.'.cyan} Listar Tareas Pendientes`
-    }, {
-      value: 5,
-      name: `${'5.'.cyan} Completar tarea(s)`
-    }, {
-      value: 6,
-      name: `${'6.'.cyan} Borrar Tarea`
-    }, {
-      value: 0,
-      name: `${'7.'.cyan} Salir`
-    },
-  ]
-}];
+  name: 'choice',
+  message: 'What would you like to do?',
+  choices,
+};
 
-const inquireMenu = async () => {
-  console.log('======================='.cyan);
-  console.log(' Seleccione una opcion '.black.bgCyan);
-  console.log('======================='.cyan);
+const promptUserOption = async () => {
+  console.log('==================='.cyan);
+  console.log(' Select an option '.black.bgCyan);
+  console.log('==================='.cyan);
 
-  const { opt } = await inquirer.prompt(preguntas);
-  return opt;
-}
+  const { choice } = await inquirer.prompt(questions);
+  return choice;
+};
 
-const pausa = async () => {
+const waitForEnter = async () => {
   console.log();
-  const question = [{
+  const question = {
     type: 'input',
     name: 'enter',
-    message: `Presione : ${'ENTER'.cyan} para continuar`,
-  }];
+    message: `Press ${'ENTER'.cyan} to continue`,
+  };
   await inquirer.prompt(question);
-}
+};
 
-const leerInput = async (msn) => {
-  const question = [{
+const readInput = async () => {
+  const question = {
     type: 'input',
-    name: 'desc',
-    message: msn,
-    validate(value) {
-      if (value.length === 0) {
-        return 'Por favor ingrese un valor';
+    name: 'task',
+    message: 'Description: ',
+    validate(inputValue) {
+      if (!inputValue.trimStart()) {
+        return 'Value cannot be blank';
       }
       return true;
-    }
-  }];
-  const { desc } = await inquirer.prompt(question);
-  return desc;
-}
+    },
+  };
 
-const listarTareasBorrar = async (tareas = []) => {
-  const choices = tareas.map((tarea, i) => {
+  const { task } = await inquirer.prompt(question);
+  return task;
+};
+
+const listTasksToDelete = async (tasks = []) => {
+  const choices = tasks.map((task, i) => {
     const idx = `${i + 1}`.cyan;
     return {
-      value: tarea.id,
-      name: `${idx} ${tarea.desc}`
-    }
+      value: task.id,
+      name: `${idx} ${task.desc}`,
+    };
   });
   choices.unshift({
     value: '0',
-    name: `${'0.'.cyan} Cancelar`
-  })
-  const preguntas = [{
+    name: `${'0.'.cyan} Cancel`,
+  });
+  const questions = {
     type: 'list',
     name: 'id',
-    message: 'Que deseas borrar?',
-    choices
-  }];
-  const { id } = await inquirer.prompt(preguntas);
+    message: 'Which task do you want to delete?',
+    choices,
+  };
+  const { id } = await inquirer.prompt(questions);
   return id;
-}
+};
 
-const mostrarListadoCheckList = async (tareas = []) => {
-  const choices = tareas.map((tarea, i) => {
-    const idx = `${i + 1}`.cyan;
-    return {
-      value: tarea.id,
-      name: `${idx} ${tarea.desc}`,
-      checked: (tarea.completadoEn) ? true : false
-    }
-  });
-  const pregunta = [{
+const showChecklist = async (tasks = []) => {
+  const choices = tasks.map(({ id, desc, completedAt }, i) => ({
+    value: id,
+    name: `${`${i + 1}`.cyan} ${desc}`,
+    checked: !!completedAt,
+  }));
+
+  const questions = {
     type: 'checkbox',
     name: 'ids',
-    message: 'Seleccione',
-    choices
-  }];
-  const { ids } = await inquirer.prompt(pregunta);
+    message: 'Select task(s)',
+    choices,
+  };
+
+  const { ids } = await inquirer.prompt(questions);
   return ids;
-}
+};
 
-const confirmar = async (message = '') => {
-  const preguntas = [{
+const confirmDelete = async () => {
+  const question = {
     type: 'confirm',
-    name: 'ok',
-    message: message.red
-  }];
-  const { ok } = await inquirer.prompt(preguntas);
-  return ok;
-}
-
+    name: 'confirmed',
+    message: 'Are you sure?'.red,
+  };
+  const { confirmed } = await inquirer.prompt(question);
+  return confirmed;
+};
 
 module.exports = {
-  inquireMenu,
-  pausa,
-  leerInput,
-  listarTareasBorrar,
-  mostrarListadoCheckList,
-  confirmar
-}
+  promptUserOption,
+  waitForEnter,
+  readInput,
+  listTasksToDelete,
+  showChecklist,
+  confirmDelete,
+};

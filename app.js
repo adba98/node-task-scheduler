@@ -1,61 +1,67 @@
 require('colors');
-const { guardarDB, leerDB } = require('./db/guardarArchivo');
+const { saveToDB, readFromDB } = require('./db/dbHandler');
 const {
-  inquireMenu,
-  pausa,
-  leerInput,
-  listarTareasBorrar,
-  mostrarListadoCheckList,
-  confirmar
+  promptUserOption,
+  waitForEnter,
+  readInput,
+  listTasksToDelete,
+  showChecklist,
+  confirmDelete,
 } = require('./helpers/inquirer');
-const Tareas = require('./models/tareas');
+const Tasks = require('./models/Tasks');
 
-const main = async () => {
-  let opt = '';
-  const tareas = new Tareas();
-  const tareasDB = leerDB();
+const main = () => {
+  const tasks = new Tasks();
+  const tasksFromDB = readFromDB();
 
-  if (tareasDB) {
-    tareas.cargarTareaFromArray(tareasDB);
+  if (tasksFromDB) {
+    tasks.loadTasks(tasksFromDB);
   }
+
+  start(tasks);
+};
+
+const start = async (tasks) => {
+  let option = 0;
+
   do {
     console.clear();
-    opt = await inquireMenu();
-    switch (opt) {
+    option = await promptUserOption();
+    switch (option) {
       case 1:
-        const desc = await leerInput('Descripcion: ');
-        console.log(desc);
-        tareas.crearTarea(desc);
+        const task = await readInput();
+        console.log(task);
+        tasks.createTask(task);
         break;
       case 2:
-        tareas.listadoCompleto();
+        tasks.listAllTasks();
         break;
       case 3:
-        tareas.listarCompletadasPendientes(true);
+        tasks.listCompletedTasks();
         break;
       case 4:
-        tareas.listarCompletadasPendientes(false);
+        tasks.listCompletedTasks(false);
         break;
       case 5:
-        const ids = await mostrarListadoCheckList(tareas.listaddoArr);
-        tareas.toggleCompletadas(ids);
+        const ids = await showChecklist(tasks.tasksList);
+        tasks.changeSelectedTasksState(ids);
         break;
       case 6:
-        const id = await listarTareasBorrar(tareas.listaddoArr);
+        const id = await listTasksToDelete(tasks.tasksList);
         if (id !== '0') {
-          const confBorrar = await confirmar('¿Esta seguro?');
-          if (confBorrar) {
-            tareas.borrarTarea(id);
-            console.log(`Tarea con id: ${id} borrada`);
+          const deleteConfirmation = await confirmDelete();
+          if (deleteConfirmation) {
+            tasks.deleteTask(id);
+            console.log(`Task with id: ${id} deleted.`);
           }
         }
         break;
     }
 
-    guardarDB(tareas.listaddoArr);
+    saveToDB(tasks.tasksList);
 
-    await pausa();
-  } while (opt !== 0);
-}
+    await waitForEnter();
+  } while (option !== 0);
+};
 
 main();
